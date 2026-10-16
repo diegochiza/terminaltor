@@ -1,0 +1,54 @@
+:root {
+  --bg: #0f1117;
+  --panel: #161922;
+  --border: #262b38;
+  --text: #e6e6e6;
+  --muted: #8a90a2;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  overflow: hidden;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 12px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.brand {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.workspace {
+  flex: 1;
+  min-height: 0;
+  padding: 8px 4px 4px 12px;
+}
+
+.terminal {
+  height: 100%;
+  width: 100%;
+}
