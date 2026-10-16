@@ -6,6 +6,10 @@ export interface PtyStartOptions {
 
 export interface TerminaltorApi {
   platform: NodeJS.Platform
+  clipboard: {
+    writeText(text: string): void
+    readText(): Promise<string>
+  }
   pty: {
     start(options: PtyStartOptions): Promise<number>
     write(id: number, data: string): void

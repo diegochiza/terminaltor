@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
+import { clipboard, contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 import type { TerminaltorApi } from '../shared/api'
 
 function subscribe<T>(channel: string, listener: (value: T) => void): () => void {
@@ -9,6 +9,10 @@ function subscribe<T>(channel: string, listener: (value: T) => void): () => void
 
 const api: TerminaltorApi = {
   platform: process.platform,
+  clipboard: {
+    writeText: (text) => clipboard.writeText(text),
+    readText: () => clipboard.readText()
+  },
   pty: {
     start: (options) => ipcRenderer.invoke('pty:start', options),
     write: (id, data) => ipcRenderer.send('pty:write', id, data),
