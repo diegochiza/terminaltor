@@ -18,9 +18,11 @@ const api: TerminaltorApi = {
     saveProvider: (id, update) => ipcRenderer.invoke('ai:saveProvider', id, update),
     select: (provider, model) => ipcRenderer.invoke('ai:select', provider, model),
     listModels: (id) => ipcRenderer.invoke('ai:listModels', id),
-    chat: (requestId, request) => ipcRenderer.send('ai:chat', requestId, request),
-    cancel: (requestId) => ipcRenderer.send('ai:cancel', requestId),
-    onEvent: (requestId, listener) => subscribe(`ai:event:${requestId}`, listener)
+    send: (id, message) => ipcRenderer.send('ai:send', id, message),
+    toolResults: (id, results) => ipcRenderer.send('ai:toolResults', id, results),
+    cancel: (id) => ipcRenderer.send('ai:cancel', id),
+    reset: (id) => ipcRenderer.send('ai:reset', id),
+    onEvent: (id, listener) => subscribe(`ai:event:${id}`, listener)
   },
   pty: {
     start: (options) => ipcRenderer.invoke('pty:start', options),

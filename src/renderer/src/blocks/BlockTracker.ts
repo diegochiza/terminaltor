@@ -61,6 +61,11 @@ export class BlockTracker implements IDisposable {
     return this.cwd !== undefined
   }
 
+  /** true mientras un comando está corriendo. */
+  get busy(): boolean {
+    return this.current !== undefined
+  }
+
   onBlockStarted(listener: Listener): () => void {
     this.startListeners.add(listener)
     return () => this.startListeners.delete(listener)

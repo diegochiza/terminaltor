@@ -43,16 +43,30 @@ El botón **IA** abre un panel de chat. Arriba eliges el proveedor y el modelo; 
 
 - Las claves se guardan cifradas con tu usuario de Windows (DPAPI, vía `safeStorage` de Electron) en `%APPDATA%\terminaltor\ai-settings.json`, y solo el proceso principal las usa.
 - En el panel de bloques, **Enviar a la IA** adjunta el comando con su carpeta, código de salida y salida a tu próxima pregunta.
-- Los comandos que propone la IA tienen botones **Copiar** e **Insertar en terminal**. Insertar los escribe en la línea de comandos sin ejecutarlos: tú decides si presionas Enter.
+- Los comandos que la IA muestra en sus respuestas tienen botones **Copiar** e **Insertar en terminal**. Insertar los escribe en la línea de comandos sin ejecutarlos.
 
-Pruebas: `npm run test:providers` comprueba los adaptadores de IA contra un servidor simulado (no usa claves reales).
+### Agente
+
+La IA puede pedir ejecutar comandos para investigar o hacer lo que le pediste. Cada comando aparece en una tarjeta con la razón, y nada corre hasta que lo apruebas:
+
+- **Ejecutar** lo corre en el terminal (queda como un bloque más) y le devuelve la salida y el código de salida a la IA, que sigue trabajando con eso.
+- **Editar** te deja cambiarlo antes; la IA se entera de que lo modificaste.
+- **Rechazar** se lo dice a la IA para que busque otra forma.
+- Los comandos que borran o cambian datos (`Remove-Item`, `Stop-Process`, `Format-Volume`, `-Recurse -Force`, redirecciones `>`, etc.) se marcan con una advertencia.
+- Mientras corre un comando puedes **Interrumpir** (Ctrl+C), y **Detener** corta al agente. Hay un límite de 25 comandos seguidos por cada mensaje tuyo.
+
+## Ajustes
+
+**Ajustes** en la barra superior cambia el tema (Oscuro, Claro, Solarizado) y el tamaño de letra; también `Ctrl +`, `Ctrl −` y `Ctrl 0`. Se recuerdan entre sesiones.
+
+Pruebas: `npm run test:providers` comprueba los cuatro proveedores contra un servidor simulado, incluido el ciclo de pedir un comando y recibir su salida (no usa claves reales).
 
 ## Plan
 
 1. **Base del terminal** (hecho): ventana Electron con una shell real.
 2. **Bloques de comandos** (hecho): cada comando y su salida agrupados en un bloque.
 3. **IA integrada con selector de modelo** (hecho): Claude, OpenAI (o compatibles), Gemini y Ollama.
-4. **Agente que ejecuta**: la IA propone comandos y el usuario los aprueba.
+4. **Agente que ejecuta** (hecho): la IA propone comandos y el usuario los aprueba; también tema y tamaño de letra.
 
 ## Estructura
 

@@ -53,11 +53,6 @@ export interface AiSettingsView {
   selected: { provider: ProviderId; model: string }
 }
 
-export interface ChatMessage {
-  role: 'user' | 'assistant'
-  content: string
-}
-
 export interface ContextBlock {
   command: string
   cwd?: string
@@ -65,13 +60,31 @@ export interface ContextBlock {
   output: string
 }
 
-export interface ChatRequest {
-  messages: ChatMessage[]
-  /** Bloques del terminal adjuntos al último mensaje del usuario. */
+/** Comando que la IA quiere ejecutar; el usuario debe aprobarlo. */
+export interface ToolCallRequest {
+  id: string
+  name: string
+  command: string
+  reason: string
+  /** Argumentos inválidos o truncados: no se ofrece para ejecutar. */
+  invalid?: boolean
+}
+
+export interface ToolResultInput {
+  id: string
+  output: string
+  isError: boolean
+}
+
+export interface UserMessage {
+  text: string
+  /** Bloques del terminal adjuntos a este mensaje. */
   context: ContextBlock[]
 }
 
-export type ChatEvent =
+export type AgentEvent =
   | { type: 'text'; text: string }
+  /** El turno terminó pidiendo comandos: se espera toolResults() para seguir. */
+  | { type: 'tool_calls'; calls: ToolCallRequest[] }
   | { type: 'done'; model: string }
   | { type: 'error'; message: string }

@@ -1,29 +1,55 @@
 import { useEffect, useRef, useState } from 'react'
-import { PROVIDERS, type AiSettingsView, type ChatMessage, type ContextBlock, type ProviderId } from '../../../shared/ai'
+import {
+  PROVIDERS,
+  type AgentEvent,
+  type AiSettingsView,
+  type ContextBlock,
+  type ProviderId,
+  type ToolResultInput
+} from '../../../shared/ai'
+import type { Block } from '../blocks/BlockTracker'
+import CommandCard, { type CommandTurn } from './CommandCard'
 import MessageView from './MessageView'
 import ProviderSettings from './ProviderSettings'
+
+const MAX_TOOL_OUTPUT = 10_000
 
 interface Props {
   attached: ContextBlock[]
   onRemoveAttached(index: number): void
   onClearAttached(): void
   onInsertCommand(command: string): void
+  onRunCommand(command: string): Promise<Block>
+  onInterrupt(): void
   onCopy(text: string): void
 }
 
-interface Turn extends ChatMessage {
-  context?: ContextBlock[]
-  model?: string
-  error?: string
+type Turn =
+  | { kind: 'user'; text: string; context?: ContextBlock[] }
+  | { kind: 'assistant'; text: string; model?: string; error?: string }
+  | CommandTurn
+
+function toolOutput(turn: CommandTurn): ToolResultInput {
+  const { call } = turn
+  if (turn.state === 'rejected') {
+    return {
+      id: call.id,
+      isError: true,
+      output: turn.error ? `No se pudo ejecutar: ${turn.error}` : 'El usuario rechazó ejecutar este comando.'
+    }
+  }
+  const output = turn.output ?? ''
+  const trimmed = output.length > MAX_TOOL_OUTPUT ? '…(salida recortada)\n' + output.slice(-MAX_TOOL_OUTPUT) : output
+  const edited = turn.command !== call.command ? `El usuario modificó el comando y se ejecutó:\n${turn.command}\n\n` : ''
+  return {
+    id: call.id,
+    isError: turn.exitCode !== 0,
+    output: `${edited}Código de salida: ${turn.exitCode ?? 'desconocido'}\nSalida:\n${trimmed || '(sin salida)'}`
+  }
 }
 
-export default function AiPanel({
-  attached,
-  onRemoveAttached,
-  onClearAttached,
-  onInsertCommand,
-  onCopy
-}: Props): React.JSX.Element {
+export default function AiPanel(props: Props): React.JSX.Element {
+  const { attached, onRemoveAttached, onClearAttached, onInsertCommand, onRunCommand, onInterrupt, onCopy } = props
   const { ai } = window.terminaltor
   const [settings, setSettings] = useState<AiSettingsView | null>(null)
   const [models, setModels] = useState<string[]>([])
@@ -31,8 +57,12 @@ export default function AiPanel({
   const [showSettings, setShowSettings] = useState(false)
   const [turns, setTurns] = useState<Turn[]>([])
   const [input, setInput] = useState('')
-  const [requestId, setRequestId] = useState<string>()
+  /** 'thinking': el modelo responde; 'approval': hay comandos esperando al usuario. */
+  const [phase, setPhase] = useState<'idle' | 'thinking' | 'approval'>('idle')
+  const conversationId = useRef(crypto.randomUUID())
   const listRef = useRef<HTMLDivElement>(null)
+  const turnsRef = useRef(turns)
+  turnsRef.current = turns
 
   const provider = settings?.selected.provider ?? 'anthropic'
   const info = PROVIDERS.find((p) => p.id === provider)!
@@ -41,6 +71,55 @@ export default function AiPanel({
   useEffect(() => {
     ai.settings().then(setSettings)
   }, [])
+
+  // Escucha los eventos de la conversación actual.
+  useEffect(() => {
+    const id = conversationId.current
+    return ai.onEvent(id, (event: AgentEvent) => {
+      if (event.type === 'text') {
+        setTurns((prev) => {
+          const last = prev[prev.length - 1]
+          if (last?.kind === 'assistant' && !last.model) {
+            return [...prev.slice(0, -1), { ...last, text: last.text + event.text }]
+          }
+          return [...prev, { kind: 'assistant', text: event.text }]
+        })
+      } else if (event.type === 'tool_calls') {
+        setTurns((prev) => [
+          ...prev,
+          ...event.calls.map(
+            (call): CommandTurn => ({
+              kind: 'command',
+              call,
+              command: call.command,
+              state: call.invalid ? 'rejected' : 'pending'
+            })
+          )
+        ])
+        setPhase('approval')
+      } else {
+        setTurns((prev) => {
+          const last = prev[prev.length - 1]
+          const patch = event.type === 'error' ? { error: event.message } : { model: event.model || ' ' }
+          if (last?.kind === 'assistant') return [...prev.slice(0, -1), { ...last, ...patch }]
+          return event.type === 'error' ? [...prev, { kind: 'assistant', text: '', ...patch }] : prev
+        })
+        setPhase('idle')
+      }
+    })
+  }, [conversationId.current])
+
+  // Cuando todos los comandos pedidos en un turno se resolvieron, se devuelve la salida a la IA.
+  useEffect(() => {
+    if (phase !== 'approval') return
+    const lastUser = turns.map((t) => t.kind).lastIndexOf('user')
+    const batch = turns.slice(lastUser + 1).filter((t): t is CommandTurn => t.kind === 'command')
+    const open = batch.filter((t) => !t.sent)
+    if (open.length === 0 || open.some((t) => t.state === 'pending' || t.state === 'running')) return
+    setTurns((prev) => prev.map((t) => (t.kind === 'command' && open.includes(t) ? { ...t, sent: true } : t)))
+    setPhase('thinking')
+    ai.toolResults(conversationId.current, open.map(toolOutput))
+  }, [turns, phase])
 
   // Al cambiar de proveedor (o su configuración) se recarga la lista de modelos.
   useEffect(() => {
@@ -57,44 +136,48 @@ export default function AiPanel({
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight })
   }, [turns])
 
+  const newConversation = (): void => {
+    ai.reset(conversationId.current)
+    conversationId.current = crypto.randomUUID()
+    setTurns([])
+    setPhase('idle')
+  }
+
   const changeProvider = async (id: ProviderId): Promise<void> => {
     const first = PROVIDERS.find((p) => p.id === id)!.defaultModels[0] ?? ''
     setSettings(await ai.select(id, first))
+    if (turnsRef.current.length > 0) newConversation()
   }
 
-  const changeModel = async (model: string): Promise<void> => {
-    setSettings(await ai.select(provider, model))
+  const updateCommand = (call: CommandTurn['call'], patch: Partial<CommandTurn>): void =>
+    setTurns((prev) => prev.map((t) => (t.kind === 'command' && t.call === call ? { ...t, ...patch } : t)))
+
+  const runCommand = async (turn: CommandTurn, command: string): Promise<void> => {
+    updateCommand(turn.call, { state: 'running', command })
+    try {
+      const block = await onRunCommand(command)
+      updateCommand(turn.call, { state: 'done', exitCode: block.exitCode, output: block.output })
+    } catch (error) {
+      updateCommand(turn.call, { state: 'rejected', error: (error as Error).message })
+    }
   }
 
   const send = (): void => {
     const text = input.trim()
-    if (!text || requestId || !settings?.selected.model) return
-    const userTurn: Turn = { role: 'user', content: text, context: attached.length > 0 ? attached : undefined }
-    const history = [...turns, userTurn]
-    const id = crypto.randomUUID()
-    setTurns([...history, { role: 'assistant', content: '' }])
+    if (!text || phase !== 'idle' || !settings?.selected.model) return
+    const context = attached.length > 0 ? attached : undefined
+    setTurns((prev) => [...prev, { kind: 'user', text, context }])
     setInput('')
-    setRequestId(id)
+    setPhase('thinking')
     onClearAttached()
+    ai.send(conversationId.current, { text, context: context ?? [] })
+  }
 
-    const update = (patch: (turn: Turn) => Turn): void =>
-      setTurns((prev) => [...prev.slice(0, -1), patch(prev[prev.length - 1])])
-
-    const off = ai.onEvent(id, (event) => {
-      if (event.type === 'text') update((t) => ({ ...t, content: t.content + event.text }))
-      if (event.type === 'error') update((t) => ({ ...t, error: event.message }))
-      if (event.type === 'done') update((t) => ({ ...t, model: event.model || undefined }))
-      if (event.type !== 'text') {
-        off()
-        setRequestId(undefined)
-      }
-    })
-    // El contexto de bloques viaja solo con el mensaje en que se adjuntó; los
-    // mensajes anteriores van con su texto.
-    ai.chat(id, {
-      messages: history.filter((t) => !t.error).map(({ role, content }) => ({ role, content })),
-      context: userTurn.context ?? []
-    })
+  const stop = (): void => {
+    ai.cancel(conversationId.current)
+    // Los comandos sin aprobar quedan rechazados; la IA lo sabrá en el próximo mensaje.
+    setTurns((prev) => prev.map((t) => (t.kind === 'command' && t.state === 'pending' ? { ...t, state: 'rejected', sent: true } : t)))
+    setPhase('idle')
   }
 
   if (!settings) return <div className="ai-panel" />
@@ -113,7 +196,7 @@ export default function AiPanel({
           list="ai-models"
           value={settings.selected.model}
           onChange={(e) => setSettings({ ...settings, selected: { provider, model: e.target.value } })}
-          onBlur={(e) => changeModel(e.target.value.trim())}
+          onBlur={(e) => ai.select(provider, e.target.value.trim()).then(setSettings)}
           placeholder="Modelo"
           title="Modelo: elige de la lista o escribe su nombre"
         />
@@ -129,6 +212,7 @@ export default function AiPanel({
 
       {(showSettings || !configured) && (
         <ProviderSettings
+          key={provider}
           info={info}
           settings={settings.providers[provider]}
           onSave={async (update) => {
@@ -142,23 +226,36 @@ export default function AiPanel({
       <div className="ai-messages" ref={listRef}>
         {turns.length === 0 && (
           <p className="blocks-empty">
-            Pregunta lo que necesites sobre tu terminal. Desde el panel de bloques puedes enviar un comando con su
-            salida para que la IA lo analice.
+            Pídele algo a la IA, por ejemplo «¿qué ocupa más espacio en esta carpeta?». Si necesita ejecutar un
+            comando te lo mostrará primero y solo correrá si lo apruebas.
           </p>
         )}
-        {turns.map((turn, i) => (
-          <MessageView
-            key={i}
-            role={turn.role}
-            content={turn.content}
-            context={turn.context}
-            model={turn.model}
-            error={turn.error}
-            pending={turn.role === 'assistant' && i === turns.length - 1 && requestId !== undefined}
-            onInsert={onInsertCommand}
-            onCopy={onCopy}
-          />
-        ))}
+        {turns.map((turn, i) =>
+          turn.kind === 'command' ? (
+            <CommandCard
+              key={turn.call.id}
+              turn={turn}
+              onRun={(command) => runCommand(turn, command)}
+              onReject={() => updateCommand(turn.call, { state: 'rejected' })}
+              onInterrupt={onInterrupt}
+            />
+          ) : (
+            <MessageView
+              key={i}
+              role={turn.kind}
+              content={turn.text}
+              context={turn.kind === 'user' ? turn.context : undefined}
+              model={turn.kind === 'assistant' ? turn.model?.trim() : undefined}
+              error={turn.kind === 'assistant' ? turn.error : undefined}
+              pending={false}
+              onInsert={onInsertCommand}
+              onCopy={onCopy}
+            />
+          )
+        )}
+        {phase === 'thinking' && turns[turns.length - 1]?.kind !== 'assistant' && (
+          <p className="message-text muted">Pensando…</p>
+        )}
       </div>
 
       <div className="ai-composer">
@@ -188,13 +285,13 @@ export default function AiPanel({
           rows={3}
         />
         <div className="ai-composer-actions">
-          {turns.length > 0 && !requestId && (
-            <button className="link-button" onClick={() => setTurns([])}>
+          {turns.length > 0 && phase === 'idle' && (
+            <button className="link-button" onClick={newConversation}>
               Nueva conversación
             </button>
           )}
-          {requestId ? (
-            <button className="primary-button" onClick={() => ai.cancel(requestId)}>
+          {phase !== 'idle' ? (
+            <button className="primary-button" onClick={stop}>
               Detener
             </button>
           ) : (
