@@ -1,3 +1,5 @@
+import type { AiSettingsView, ChatEvent, ChatRequest, ProviderId } from './ai'
+
 export interface PtyStartOptions {
   cols: number
   rows: number
@@ -9,6 +11,15 @@ export interface TerminaltorApi {
   clipboard: {
     writeText(text: string): void
     readText(): Promise<string>
+  }
+  ai: {
+    settings(): Promise<AiSettingsView>
+    saveProvider(id: ProviderId, update: { apiKey?: string; baseURL?: string }): Promise<AiSettingsView>
+    select(provider: ProviderId, model: string): Promise<AiSettingsView>
+    listModels(id: ProviderId): Promise<string[]>
+    chat(requestId: string, request: ChatRequest): void
+    cancel(requestId: string): void
+    onEvent(requestId: string, listener: (event: ChatEvent) => void): () => void
   }
   pty: {
     start(options: PtyStartOptions): Promise<number>

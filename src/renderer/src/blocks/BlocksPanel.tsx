@@ -5,6 +5,7 @@ interface Props {
   blocks: Block[]
   onSelect(id: number): void
   onCopy(text: string): void
+  onSendToAi(block: Block): void
 }
 
 function formatDuration(ms?: number): string {
@@ -20,7 +21,7 @@ function statusLabel(block: Block): string {
   return `Error (código ${block.exitCode ?? '?'})`
 }
 
-export default function BlocksPanel({ blocks, onSelect, onCopy }: Props): React.JSX.Element {
+export default function BlocksPanel({ blocks, onSelect, onCopy, onSendToAi }: Props): React.JSX.Element {
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
 
   const toggle = (id: number): void =>
@@ -32,8 +33,7 @@ export default function BlocksPanel({ blocks, onSelect, onCopy }: Props): React.
     })
 
   return (
-    <aside className="blocks-panel">
-      <div className="blocks-header">Bloques</div>
+    <>
       {blocks.length === 0 ? (
         <p className="blocks-empty">
           Cada comando que ejecutes aparecerá aquí con su salida. Usa Ctrl+Shift+↑/↓ para saltar entre bloques en
@@ -69,7 +69,7 @@ export default function BlocksPanel({ blocks, onSelect, onCopy }: Props): React.
                   <button onClick={() => onCopy(block.output)} disabled={block.status === 'running'}>
                     Copiar salida
                   </button>
-                  <button disabled title="Disponible en el paso 3">
+                  <button onClick={() => onSendToAi(block)} disabled={block.status === 'running'}>
                     Enviar a la IA
                   </button>
                 </div>
@@ -78,6 +78,6 @@ export default function BlocksPanel({ blocks, onSelect, onCopy }: Props): React.
           })}
         </ol>
       )}
-    </aside>
+    </>
   )
 }

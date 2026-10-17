@@ -9,10 +9,15 @@
     "build": "electron-vite build",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "dist:win": "electron-vite build && electron-builder --win",
-    "test:blocks": "tsx scripts/test-blocks.ts"
+    "test:blocks": "tsx scripts/test-blocks.ts",
+    "test:providers": "tsx scripts/test-providers.ts"
   },
   "dependencies": {
-    "node-pty": "^1.1.0"
+    "@anthropic-ai/sdk": "^0.135.0",
+    "@google/genai": "^2.30.0",
+    "node-pty": "^1.1.0",
+    "ollama": "^0.6.4",
+    "openai": "^7.35.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

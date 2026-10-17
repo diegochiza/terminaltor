@@ -13,6 +13,15 @@ const api: TerminaltorApi = {
     writeText: (text) => clipboard.writeText(text),
     readText: () => clipboard.readText()
   },
+  ai: {
+    settings: () => ipcRenderer.invoke('ai:settings'),
+    saveProvider: (id, update) => ipcRenderer.invoke('ai:saveProvider', id, update),
+    select: (provider, model) => ipcRenderer.invoke('ai:select', provider, model),
+    listModels: (id) => ipcRenderer.invoke('ai:listModels', id),
+    chat: (requestId, request) => ipcRenderer.send('ai:chat', requestId, request),
+    cancel: (requestId) => ipcRenderer.send('ai:cancel', requestId),
+    onEvent: (requestId, listener) => subscribe(`ai:event:${requestId}`, listener)
+  },
   pty: {
     start: (options) => ipcRenderer.invoke('pty:start', options),
     write: (id, data) => ipcRenderer.send('pty:write', id, data),

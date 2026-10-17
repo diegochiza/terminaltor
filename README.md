@@ -30,11 +30,28 @@ Al abrir PowerShell, Terminaltor le agrega una pequeña integración (sin tocar 
 
 Para probar la detección de bloques con una PowerShell real: `npm run test:blocks`.
 
+## IA integrada
+
+El botón **IA** abre un panel de chat. Arriba eliges el proveedor y el modelo; la lista de modelos se carga desde el proveedor con tu clave, y también puedes escribir el nombre de cualquier modelo.
+
+| Proveedor | Qué necesita |
+| --- | --- |
+| Claude | Clave de API de Anthropic (console.anthropic.com) |
+| OpenAI | Clave de API. Cambiando la URL base sirve para OpenRouter, Groq, LM Studio y otros compatibles |
+| Gemini | Clave de API de Google AI Studio |
+| Ollama | Ollama abierto en tu equipo (por defecto en http://localhost:11434) |
+
+- Las claves se guardan cifradas con tu usuario de Windows (DPAPI, vía `safeStorage` de Electron) en `%APPDATA%\terminaltor\ai-settings.json`, y solo el proceso principal las usa.
+- En el panel de bloques, **Enviar a la IA** adjunta el comando con su carpeta, código de salida y salida a tu próxima pregunta.
+- Los comandos que propone la IA tienen botones **Copiar** e **Insertar en terminal**. Insertar los escribe en la línea de comandos sin ejecutarlos: tú decides si presionas Enter.
+
+Pruebas: `npm run test:providers` comprueba los adaptadores de IA contra un servidor simulado (no usa claves reales).
+
 ## Plan
 
 1. **Base del terminal** (hecho): ventana Electron con una shell real.
 2. **Bloques de comandos** (hecho): cada comando y su salida agrupados en un bloque.
-3. **IA integrada con selector de modelo**: Claude, OpenAI, Gemini u Ollama mediante Vercel AI SDK.
+3. **IA integrada con selector de modelo** (hecho): Claude, OpenAI (o compatibles), Gemini y Ollama.
 4. **Agente que ejecuta**: la IA propone comandos y el usuario los aprueba.
 
 ## Estructura

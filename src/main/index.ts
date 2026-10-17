@@ -1,5 +1,6 @@
 import { app, BrowserWindow, shell } from 'electron'
 import { join } from 'path'
+import { registerAiHandlers } from './ai'
 import { killAllPtys, registerPtyHandlers } from './pty'
 
 function createWindow(): void {
@@ -34,6 +35,7 @@ function createWindow(): void {
 
 app.whenReady().then(() => {
   registerPtyHandlers()
+  registerAiHandlers()
   createWindow()
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

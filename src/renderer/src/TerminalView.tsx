@@ -21,6 +21,8 @@ const rulerColors: Record<BlockStatus, string> = {
 export interface TerminalHandle {
   tracker: BlockTracker
   scrollToBlock(id: number): void
+  /** Escribe texto en la línea de comandos sin ejecutarlo. */
+  insert(text: string): void
   focus(): void
 }
 
@@ -141,6 +143,10 @@ export default function TerminalView({ onReady }: Props): React.JSX.Element {
       scrollToBlock: (id) => {
         const line = tracker.blockLine(id)
         if (line !== undefined) term.scrollToLine(line)
+        term.focus()
+      },
+      insert: (text) => {
+        term.paste(text)
         term.focus()
       },
       focus: () => term.focus()
