@@ -2,6 +2,7 @@ appId: com.terminaltor.app
 productName: Terminaltor
 directories:
   buildResources: build
+  output: dist
 files:
   - out/**
   - package.json
@@ -9,8 +10,13 @@ asarUnpack:
   - node_modules/node-pty/**
 win:
   target:
+    # Instalador (Terminaltor-Setup-<versión>.exe) y versión portable que no se instala.
     - nsis
+    - portable
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
+  artifactName: ${productName}-Setup-${version}.${ext}
+portable:
+  artifactName: ${productName}-${version}-portable.${ext}
 npmRebuild: false

@@ -16,7 +16,7 @@ node-pty trae binarios precompilados para Windows, así que no hace falta instal
 ```powershell
 npm install
 npm run dev        # abre la app en modo desarrollo
-npm run dist:win   # genera el instalador en dist/
+npm run dist:win   # genera el instalador y la versión portable en dist/
 ```
 
 ## Bloques de comandos
