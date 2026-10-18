@@ -19,6 +19,24 @@ npm run dev        # abre la app en modo desarrollo
 npm run dist:win   # genera el instalador y la versión portable en dist/
 ```
 
+## Pestañas y paneles
+
+Cada pestaña puede dividirse en varios paneles, cada uno con su propia PowerShell. La pestaña se llama como la carpeta en la que está su panel activo.
+
+| Atajo | Acción |
+| --- | --- |
+| `Ctrl+Shift+T` | Nueva pestaña |
+| `Ctrl+Tab` / `Ctrl+Shift+Tab` | Pestaña siguiente / anterior |
+| `Ctrl+1` … `Ctrl+9` | Ir a la pestaña 1 a 9 |
+| `Ctrl+Shift+D` | Dividir el panel a la derecha |
+| `Ctrl+Shift+E` | Dividir el panel hacia abajo |
+| `Alt+Flechas` | Mover el foco al panel vecino |
+| `Ctrl+Shift+W` | Cerrar el panel (o la pestaña, si es el último) |
+
+También hay botones para dividir en la barra superior. Los separadores se arrastran para cambiar el tamaño y con doble clic vuelven a mitad y mitad. Escribir `exit` cierra ese panel; clic con la rueda en una pestaña la cierra. Al cerrar la última pestaña se cierra la ventana.
+
+Los paneles **Bloques** e **IA** trabajan con el panel que tiene el foco: los bloques que ves son los de ese panel, y los comandos que apruebas a la IA corren ahí.
+
 ## Bloques de comandos
 
 Al abrir PowerShell, Terminaltor le agrega una pequeña integración (sin tocar tu perfil) que marca dónde empieza y termina cada comando. Con eso:
@@ -67,6 +85,7 @@ Pruebas: `npm run test:providers` comprueba los cuatro proveedores contra un ser
 2. **Bloques de comandos** (hecho): cada comando y su salida agrupados en un bloque.
 3. **IA integrada con selector de modelo** (hecho): Claude, OpenAI (o compatibles), Gemini y Ollama.
 4. **Agente que ejecuta** (hecho): la IA propone comandos y el usuario los aprueba; también tema y tamaño de letra.
+5. **Pestañas y paneles divididos** (hecho).
 
 ## Estructura
 

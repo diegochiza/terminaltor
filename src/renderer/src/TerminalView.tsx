@@ -28,15 +28,21 @@ interface Props {
   theme: AppTheme
   fontSize: number
   onReady(handle: TerminalHandle | null): void
+  /** El terminal recibió el foco (clic o teclado). */
+  onFocus?(): void
+  /** La shell terminó (por ejemplo con exit). */
+  onExit?(code: number): void
 }
 
-export default function TerminalView({ theme, fontSize, onReady }: Props): React.JSX.Element {
+export default function TerminalView({ theme, fontSize, onReady, onFocus, onExit }: Props): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
   const termRef = useRef<Terminal | null>(null)
   const fitRef = useRef<FitAddon | null>(null)
   const initial = useRef({ theme, fontSize })
   const onReadyRef = useRef(onReady)
   onReadyRef.current = onReady
+  const callbacks = useRef({ onFocus, onExit })
+  callbacks.current = { onFocus, onExit }
 
   useEffect(() => {
     const container = containerRef.current
@@ -130,6 +136,7 @@ export default function TerminalView({ theme, fontSize, onReady }: Props): React
         pty.onExit(id, (code) => {
           tracker.shellExited(code)
           term.write(`\r\n[proceso terminado con código ${code}]\r\n`)
+          callbacks.current.onExit?.(code)
         })
       )
       const input = term.onData((data) => pty.write(id, data))
@@ -141,8 +148,14 @@ export default function TerminalView({ theme, fontSize, onReady }: Props): React
       if (ptyId !== undefined) pty.resize(ptyId, cols, rows)
     })
     cleanups.push(() => resize.dispose())
-    const observer = new ResizeObserver(() => fit.fit())
+    const observer = new ResizeObserver(() => {
+      // Una pestaña oculta mide 0: se ajusta cuando vuelve a verse.
+      if (container.offsetWidth > 0 && container.offsetHeight > 0) fit.fit()
+    })
     observer.observe(container)
+    const focusIn = (): void => callbacks.current.onFocus?.()
+    container.addEventListener('focusin', focusIn)
+    cleanups.push(() => container.removeEventListener('focusin', focusIn))
     term.focus()
 
     onReadyRef.current({

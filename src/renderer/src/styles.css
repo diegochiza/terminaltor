@@ -48,7 +48,7 @@ body,
 .workspace {
   flex: 1;
   min-height: 0;
-  padding: 8px 4px 4px 12px;
+  position: relative;
 }
 
 .terminal {
@@ -648,4 +648,165 @@ body,
 .terminal .xterm,
 .terminal .xterm-viewport {
   background-color: var(--bg) !important;
+}
+
+/* Pestañas */
+.toolbar {
+  gap: 12px;
+}
+
+.tabs {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 180px;
+  height: 26px;
+  padding: 0 4px 0 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.tab:hover {
+  color: var(--text);
+  background: var(--bg);
+}
+
+.tab.active {
+  color: var(--text);
+  background: var(--bg);
+  border-color: var(--border);
+}
+
+.tab-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tab-count {
+  padding: 0 5px;
+  border-radius: 8px;
+  background: var(--chip);
+  font-size: 10px;
+}
+
+.tab-close,
+.tab-add {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  border-radius: 4px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.tab-close {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1;
+  visibility: hidden;
+}
+
+.tab:hover .tab-close,
+.tab.active .tab-close {
+  visibility: visible;
+}
+
+.tab-close:hover,
+.tab-add:hover {
+  color: var(--text);
+  background: var(--border);
+}
+
+.tab-add {
+  width: 24px;
+  height: 24px;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.toolbar-button.icon {
+  display: flex;
+  align-items: center;
+  padding: 3px 6px;
+}
+
+/* Paneles divididos */
+.pane {
+  position: absolute;
+  padding: 8px 4px 4px 12px;
+  overflow: hidden;
+}
+
+.pane.multi.focused::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border: 1px solid var(--running);
+  border-radius: 4px;
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.pane.multi:not(.focused) .terminal {
+  opacity: 0.7;
+}
+
+.divider {
+  position: absolute;
+  z-index: 5;
+  touch-action: none;
+}
+
+.divider.row {
+  width: 7px;
+  margin-left: -3px;
+  cursor: col-resize;
+}
+
+.divider.column {
+  height: 7px;
+  margin-top: -3px;
+  cursor: row-resize;
+}
+
+.divider::before {
+  content: '';
+  position: absolute;
+  background: var(--border);
+}
+
+.divider.row::before {
+  left: 3px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+}
+
+.divider.column::before {
+  top: 3px;
+  left: 0;
+  right: 0;
+  height: 1px;
+}
+
+.divider:hover::before {
+  background: var(--running);
 }

@@ -43,6 +43,7 @@ export class BlockTracker implements IDisposable {
   private readonly disposables: IDisposable[] = []
   private readonly startListeners = new Set<Listener>()
   private readonly finishListeners = new Set<Listener>()
+  private readonly cwdListeners = new Set<(cwd: string) => void>()
   private nextId = 1
   private cwd?: string
   private pendingCommand?: string
@@ -61,6 +62,11 @@ export class BlockTracker implements IDisposable {
     return this.cwd !== undefined
   }
 
+  /** Carpeta actual de la shell, según la última marca recibida. */
+  get workingDirectory(): string | undefined {
+    return this.cwd
+  }
+
   /** true mientras un comando está corriendo. */
   get busy(): boolean {
     return this.current !== undefined
@@ -74,6 +80,11 @@ export class BlockTracker implements IDisposable {
   onBlockFinished(listener: Listener): () => void {
     this.finishListeners.add(listener)
     return () => this.finishListeners.delete(listener)
+  }
+
+  onCwdChanged(listener: (cwd: string) => void): () => void {
+    this.cwdListeners.add(listener)
+    return () => this.cwdListeners.delete(listener)
   }
 
   /** Línea del buffer donde empieza el bloque, o undefined si ya salió del historial. */
@@ -92,6 +103,7 @@ export class BlockTracker implements IDisposable {
     this.disposables.forEach((d) => d.dispose())
     this.startListeners.clear()
     this.finishListeners.clear()
+    this.cwdListeners.clear()
   }
 
   private handleSemanticPrompt(data: string): boolean {
@@ -114,7 +126,10 @@ export class BlockTracker implements IDisposable {
     const separator = data.indexOf(';')
     const key = data.slice(0, separator)
     const value = decodeBase64(data.slice(separator + 1))
-    if (key === 'Cwd') this.cwd = value
+    if (key === 'Cwd' && value !== this.cwd) {
+      this.cwd = value
+      this.cwdListeners.forEach((l) => l(value))
+    }
     if (key === 'Cmd') this.pendingCommand = value
     return true
   }
