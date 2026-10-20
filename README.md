@@ -4,7 +4,7 @@ Terminal de escritorio para Windows inspirada en Warp, con IA integrada y la opc
 
 Stack: Electron + React + TypeScript, xterm.js para dibujar el terminal y node-pty para conectarlo con la shell (PowerShell 7 si está instalado, si no Windows PowerShell).
 
-## Requisitos
+## Requisitossss 
 
 - Windows 10 u 11
 - Node.js 20 o superior
